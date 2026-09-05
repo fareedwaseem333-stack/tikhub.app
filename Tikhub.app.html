@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unwatermark — TikTok video downloader</title>
+<!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            tiktok: {
+              red: '#fe2c55',
+              cyan: '#25f4ee'
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style>
+  :root{
+    --bg:#0c0c11;
+    --surface:#15151d;
+    --surface-2:#1c1c26;
+    --line:#2a2a36;
+    --text:#f2f2f5;
+    --muted:#8d8d99;
+    --cyan:#25f4ee;
+    --pink:#fe2c55;
+    --radius:14px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:64px 20px 40px;
+    line-height:1.5;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  /* ---------- Hero ---------- */
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:38px;
+  }
+  .brand-mark{
+    width:28px;height:28px;
+    border-radius:8px;
+    background:linear-gradient(135deg,var(--cyan),var(--pink));
+    flex-shrink:0;
+  }
+  .brand-name{
+    font-size:15px;
+    font-weight:600;
+    letter-spacing:0.01em;
+    color:var(--muted);
+  }
+
+  .hero{
+    text-align:center;
+    max-width:640px;
+    margin-bottom:44px;
+  }
+
+  .headline{
+    position:relative;
+    font-size:clamp(34px, 6vw, 56px);
+    font-weight:700;
+    letter-spacing:-0.02em;
+    margin:0 0 14px;
+    color:var(--text);
+  }
+  .headline .glitch{
+    position:relative;
+    display:inline-block;
+  }
+  .headline .glitch::before,
+  .headline .glitch::after{
+    content:attr(data-text);
+    position:absolute;
+    left:0; top:0;
+    width:100%;
+    opacity:0.55;
+    mix-blend-mode:screen;
+  }
+  .headline .glitch::before{
+    color:var(--cyan);
+    transform:translate(-3px,1px);
+  }
+  .headline .glitch::after{
+    color:var(--pink);
+    transform:translate(3px,-1px);
+  }
+
+  .subhead{
+    color:var(--muted);
+    font-size:16px;
+    margin:0;
+  }
+
+  /* ---------- Input card ---------- */
+  .tool{
+    width:100%;
+    max-width:640px;
+  }
+
+  .input-row{
+    display:flex;
+    gap:10px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:8px;
+  }
+  .input-row:focus-within{
+    border-color:var(--cyan);
+    box-shadow:0 0 0 3px rgba(37,244,238,0.15);
+  }
+
+  #url-input{
+    flex:1;
+    background:transparent;
+    border:none;
+    outline:none;
+    color:var(--text);
+    font-size:15px;
+    padding:12px 14px;
+    min-width:0;
+    font-family:inherit;
+  }
+  #url-input::placeholder{color:#5a5a66;}
+
+  #paste-btn{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:0 16px;
+    font-size:14px;
+    font-weight:600;
+    color:var(--text);
+    background:var(--surface-2);
+    cursor:pointer;
+    white-space:nowrap;
+    transition:border-color 0.15s ease, background 0.15s ease;
+  }
+  #paste-btn:hover{
+    background:#242430;
+    border-color:#3a3a48;
+  }
+  #paste-btn svg{width:15px;height:15px;flex-shrink:0;color:var(--muted);}
+  #paste-btn:focus-visible{
+    outline:2px solid var(--cyan);
+    outline-offset:2px;
+  }
+
+  #download-btn{
+    border:none;
+    border-radius:9px;
+    padding:0 24px;
+    font-size:15px;
+    font-weight:600;
+    color:#0c0c11;
+    background:linear-gradient(135deg,var(--cyan),#5cf6f1);
+    cursor:pointer;
+    transition:transform 0.15s ease, box-shadow 0.15s ease;
+    white-space:nowrap;
+  }
+  #download-btn:hover{
+    transform:translateY(-1px);
+    box-shadow:0 6px 18px rgba(37,244,238,0.25);
+  }
+  #download-btn:active{transform:translateY(0);}
+  #download-btn:disabled{
+    opacity:0.6;
+    cursor:not-allowed;
+    transform:none;
+    box-shadow:none;
+  }
+  #download-btn:focus-visible, #url-input:focus-visible{
+    outline:2px solid var(--pink);
+    outline-offset:2px;
+  }
+
+  .hint{
+    margin-top:10px;
+    font-size:13px;
+    color:#5a5a66;
+    padding-left:4px;
+  }
+
+  @media (max-width: 480px){
+    .input-row{flex-wrap:wrap;}
+    #url-input{flex:1 1 100%; order:1;}
+    #paste-btn{order:2; flex:1;}
+    #download-btn{order:3; flex:1;}
+    .paste-label{display:inline;}
+  }
+
+  /* ---------- States ---------- */
+  .state{
+    margin-top:28px;
+  }
+
+  .loading{
+    display:none;
+    align-items:center;
+    gap:12px;
+    color:var(--muted);
+    font-size:14px;
+    padding:18px 4px;
+  }
+  .loading.visible{display:flex;}
+  .spinner{
+    width:18px;height:18px;
+    border-radius:50%;
+    border:2px solid var(--line);
+    border-top-color:var(--pink);
+    animation:spin 0.8s linear infinite;
+    flex-shrink:0;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .error{
+    display:none;
+    background:rgba(254,44,85,0.08);
+    border:1px solid rgba(254,44,85,0.3);
+    border-radius:var(--radius);
+    padding:16px 18px;
+    font-size:14px;
+    color:#ff9caf;
+  }
+  .error.visible{display:block;}
+
+  /* ---------- Result card ---------- */
+  .result{
+    display:none;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .result.visible{display:block;}
+
+  .result-top{
+    display:flex;
+    gap:16px;
+    padding:20px;
+    border-bottom:1px solid var(--line);
+  }
+  .cover{
+    width:76px;height:100px;
+    border-radius:10px;
+    object-fit:cover;
+    background:var(--surface-2);
+    flex-shrink:0;
+  }
+  .meta{
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:6px;
+  }
+  .meta-title{
+    font-size:14px;
+    font-weight:500;
+    color:var(--text);
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .meta-author{
+    font-size:13px;
+    color:var(--muted);
+  }
+
+  .downloads{
+    display:flex;
+    flex-direction:column;
+    gap:1px;
+    background:var(--line);
+  }
+  .download-option{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    background:var(--surface);
+    padding:16px 20px;
+    text-decoration:none;
+    color:var(--text);
+    transition:background 0.15s ease;
+  }
+  .download-option:hover{background:var(--surface-2);}
+  .download-option:focus-visible{
+    outline:2px solid var(--cyan);
+    outline-offset:-2px;
+  }
+
+  .option-label{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .option-name{font-size:14px; font-weight:600;}
+  .option-desc{font-size:12px; color:var(--muted);}
+
+  .option-tag{
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:0.02em;
+    padding:4px 9px;
+    border-radius:6px;
+    flex-shrink:0;
+  }
+  .tag-nowm{background:rgba(37,244,238,0.15); color:var(--cyan);}
+  .tag-hd{background:rgba(254,44,85,0.15); color:var(--pink);}
+  .tag-audio{background:rgba(255,255,255,0.08); color:var(--muted);}
+
+  .download-icon{
+    width:18px;height:18px;
+    flex-shrink:0;
+    color:#5a5a66;
+  }
+
+  /* ---------- Footer ---------- */
+  .footer-note{
+    max-width:640px;
+    text-align:center;
+    color:#4a4a54;
+    font-size:12.5px;
+    margin-top:36px;
+    padding:0 12px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <div class="brand-name">Unwatermark</div>
+  </div>
+
+  <div class="hero">
+    <h1 class="headline"><span class="glitch" data-text="Clean video, no logo.">Clean video, no logo.</span></h1>
+    <p class="subhead">Paste a TikTok link. Get the original video back — no watermark, no signup.</p>
+  </div>
+
+  <div class="tool">
+    <form id="download-form">
+      <div class="input-row">
+        <input
+          id="url-input"
+          type="url"
+          inputmode="url"
+          placeholder="https://www.tiktok.com/@user/video/..."
+          autocomplete="off"
+          spellcheck="false"
+          required
+        />
+        <button id="paste-btn" type="button" title="Paste link from clipboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1"></rect></svg>
+          <span class="paste-label">Paste</span>
+        </button>
+        <button id="download-btn" type="submit">Get video</button>
+      </div>
+    </form>
+    <p class="hint">Works with tiktok.com and vm.tiktok.com links.</p>
+
+    <div class="state">
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <span>Fetching the clean version…</span>
+      </div>
+
+      <div class="error" id="error"></div>
+
+      <div class="result" id="result">
+        <div class="result-top">
+          <img class="cover" id="cover" alt="Video thumbnail" />
+          <div class="meta">
+            <div class="meta-title" id="video-title"></div>
+            <div class="meta-author" id="video-author"></div>
+          </div>
+        </div>
+        <div class="downloads" id="downloads"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features -->
+    <section id="features" class="border-y border-white/10 bg-slate-900/50">
+      <div class="mx-auto max-w-6xl px-5 py-16">
+        <div class="mb-10 text-center">
+          <p class="text-sm font-bold uppercase tracking-[0.2em] text-tiktok-cyan">Features</p>
+          <h2 class="mt-3 text-3xl font-extrabold sm:text-4xl">
+            Everything you need
+          </h2>
+        </div>
+
+        <div class="grid gap-5 md:grid-cols-3">
+
+          <article class="rounded-3xl border border-white/10 bg-slate-950 p-7 transition hover:-translate-y-1 hover:border-tiktok-cyan/40">
+            <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-tiktok-cyan/10 text-2xl">
+              ∞
+            </div>
+            <h3 class="text-xl font-bold">Unlimited</h3>
+            <p class="mt-3 leading-7 text-slate-400">
+              Save videos as often as you need with a simple and straightforward interface.
+            </p>
+          </article>
+
+          <article class="rounded-3xl border border-white/10 bg-slate-950 p-7 transition hover:-translate-y-1 hover:border-tiktok-red/40">
+            <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-tiktok-red/10 text-2xl">
+              ✓
+            </div>
+            <h3 class="text-xl font-bold">Easy Download</h3>
+            <p class="mt-3 leading-7 text-slate-400">
+              Just copy a video link, paste it into the box and start the download process.
+            </p>
+          </article>
+
+          <article class="rounded-3xl border border-white/10 bg-slate-950 p-7 transition hover:-translate-y-1 hover:border-white/30">
+            <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-2xl">
+              HD
+            </div>
+            <h3 class="text-xl font-bold">MP4 & HD</h3>
+            <p class="mt-3 leading-7 text-slate-400">
+              Designed for a smooth video-saving experience with a modern responsive layout.
+            </p>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- About -->
+    <section class="mx-auto max-w-5xl px-5 py-20">
+      <div class="grid gap-12 md:grid-cols-2 md:items-center">
+        <div>
+          <p class="text-sm font-bold uppercase tracking-[0.2em] text-tiktok-red">About</p>
+          <h2 class="mt-3 text-3xl font-extrabold sm:text-4xl">
+            Download TikTok videos online
+          </h2>
+
+          <p class="mt-6 leading-8 text-slate-400">
+            Tikhub.app provides a simple web interface for working with TikTok video links.
+            There is no complicated software installation required to use the page.
+          </p>
+
+          <p class="mt-4 leading-8 text-slate-400">
+            Open TikTok, copy the link to a video you are authorized to save, paste it into
+            the downloader above and follow the download process.
+          </p>
+        </div>
+
+        <div class="rounded-3xl border border-white/10 bg-gradient-to-br from-tiktok-cyan/10 to-tiktok-red/10 p-8">
+          <div class="rounded-2xl border border-white/10 bg-slate-950 p-6">
+            <p class="text-sm text-slate-500">Simple process</p>
+            <p class="mt-2 text-2xl font-bold">Copy → Paste → Download</p>
+            <div class="mt-6 h-2 overflow-hidden rounded-full bg-slate-800">
+              <div class="h-full w-2/3 rounded-full bg-gradient-to-r from-tiktok-cyan to-tiktok-red"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How to -->
+    <section id="how-to" class="bg-slate-900/60">
+      <div class="mx-auto max-w-6xl px-5 py-20">
+        <div class="text-center">
+          <p class="text-sm font-bold uppercase tracking-[0.2em] text-tiktok-cyan">How it works</p>
+          <h2 class="mt-3 text-3xl font-extrabold sm:text-4xl">
+            Save a TikTok video in 3 steps
+          </h2>
+        </div>
+
+        <div class="mt-12 grid gap-6 md:grid-cols-3">
+
+          <div class="rounded-3xl border border-white/10 bg-slate-950 p-7">
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-tiktok-red text-lg font-black">1</div>
+            <h3 class="mt-6 text-xl font-bold">Find a TikTok</h3>
+            <p class="mt-3 leading-7 text-slate-400">
+              Open TikTok and find the video you want to save.
+            </p>
+          </div>
+
+          <div class="rounded-3xl border border-white/10 bg-slate-950 p-7">
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-tiktok-cyan text-lg font-black text-slate-950">2</div>
+            <h3 class="mt-6 text-xl font-bold">Copy the link</h3>
+            <p class="mt-3 leading-7 text-slate-400">
+              Use TikTok's share options to copy the video link.
+            </p>
+          </div>
+
+          <div class="rounded-3xl border border-white/10 bg-slate-950 p-7">
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-lg font-black text-slate-950">3</div>
+            <h3 class="mt-6 text-xl font-bold">Save the video</h3>
+            <p class="mt-3 leading-7 text-slate-400">
+              Paste the link above and continue with the available download option.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Benefits -->
+    <section class="mx-auto max-w-6xl px-5 py-20">
+      <div class="mb-10">
+        <p class="text-sm font-bold uppercase tracking-[0.2em] text-tiktok-red">Benefits</p>
+        <h2 class="mt-3 text-3xl font-extrabold sm:text-4xl">
+          Built for a simple experience
+        </h2>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="rounded-2xl border border-white/10 p-5">
+          <h3 class="font-bold">TikTok Download</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-400">A dedicated interface for TikTok video links.</p>
+        </div>
+
+        <div class="rounded-2xl border border-white/10 p-5">
+          <h3 class="font-bold">No Username Required</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-400">Paste a supported public video URL instead of entering a username.</p>
+        </div>
+
+        <div class="rounded-2xl border border-white/10 p-5">
+          <h3 class="font-bold">High-Speed Interface</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-400">A lightweight frontend designed for quick interaction.</p>
+        </div>
+
+        <div class="rounded-2xl border border-white/10 p-5">
+          <h3 class="font-bold">MP4 Support</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-400">Designed around common MP4 video download workflows.</p>
+        </div>
+
+        <div class="rounded-2xl border border-white/10 p-5">
+          <h3 class="font-bold">Browser Friendly</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-400">Works with modern desktop and mobile browsers.</p>
+        </div>
+
+        <div class="rounded-2xl border border-white/10 p-5">
+          <h3 class="font-bold">Responsive Design</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-400">The layout automatically adapts to smaller screens.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mobile + PC -->
+    <section class="bg-slate-900/60">
+      <div class="mx-auto max-w-6xl px-5 py-20">
+        <div class="grid gap-6 md:grid-cols-2">
+
+          <article class="rounded-3xl border border-white/10 bg-slate-950 p-8">
+            <div class="text-4xl">📱</div>
+            <h2 class="mt-5 text-2xl font-extrabold">On Mobile Phone</h2>
+            <p class="mt-4 leading-7 text-slate-400">
+              The website is responsive, so you can open it on Android or iPhone,
+              paste a supported TikTok link and use the available download controls.
+            </p>
+          </article>
+
+          <article class="rounded-3xl border border-white/10 bg-slate-950 p-8">
+            <div class="text-4xl">💻</div>
+            <h2 class="mt-5 text-2xl font-extrabold">On PC</h2>
+            <p class="mt-4 leading-7 text-slate-400">
+              Use the same interface from Windows, macOS or another modern desktop browser.
+              Simply paste your link into the downloader.
+            </p>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="mx-auto max-w-4xl px-5 py-20">
+      <div class="text-center">
+        <p class="text-sm font-bold uppercase tracking-[0.2em] text-tiktok-cyan">FAQ</p>
+        <h2 class="mt-3 text-3xl font-extrabold sm:text-4xl">
+          Frequently Asked Questions
+        </h2>
+      </div>
+
+      <div class="mt-10 space-y-3">
+
+        <details class="group rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+          <summary class="cursor-pointer list-none font-bold">
+            Is the downloader free?
+            <span class="float-right text-slate-500 group-open:rotate-45 transition">+</span>
+          </summary>
+          <p class="mt-4 leading-7 text-slate-400">
+            This frontend is designed as a free-to-use interface. Any actual downloading
+            service depends on the backend or media provider connected to it.
+          </p>
+        </details>
+
+        <details class="group rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+          <summary class="cursor-pointer list-none font-bold">
+            Do I need a TikTok account?
+            <span class="float-right text-slate-500 group-open:rotate-45 transition">+</span>
+          </summary>
+          <p class="mt-4 leading-7 text-slate-400">
+            The page itself does not ask for a TikTok username or password.
+          </p>
+        </details>
+
+        <details class="group rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+          <summary class="cursor-pointer list-none font-bold">
+            Where is the downloaded video saved?
+            <span class="float-right text-slate-500 group-open:rotate-45 transition">+</span>
+          </summary>
+          <p class="mt-4 leading-7 text-slate-400">
+            Your browser normally saves downloaded files to its configured Downloads folder.
+          </p>
+        </details>
+
+        <details class="group rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+          <summary class="cursor-pointer list-none font-bold">
+            Can I use it on Android or iPhone?
+            <span class="float-right text-slate-500 group-open:rotate-45 transition">+</span>
+          </summary>
+          <p class="mt-4 leading-7 text-slate-400">
+            Yes. The page is responsive and can be opened from a modern mobile browser.
+          </p>
+        </details>
+
+        <details class="group rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+          <summary class="cursor-pointer list-none font-bold">
+            Does the HTML file itself download TikTok videos?
+            <span class="float-right text-slate-500 group-open:rotate-45 transition">+</span>
+          </summary>
+          <p class="mt-4 leading-7 text-slate-400">
+            No. HTML and Tailwind create the interface. A real downloader requires a
+            server-side download service or an authorized media provider.
+          </p>
+        </details>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/10 bg-slate-950">
+    <div class="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 text-center text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:text-left">
+      <p>© 2026 Tikhub.app - All rights reserved.</p>
+      <p>Use this service responsibly and only with content you are authorized to save.</p>
+    </div>
+  </footer>
+
+  <p class="footer-note">
+    Only download and use content you have the right to use. This tool fetches
+    the same video file TikTok already serves — it doesn't alter or host anything.
+  </p>
+
+<script>
+(function(){
+  const form = document.getElementById('download-form');
+  const input = document.getElementById('url-input');
+  const btn = document.getElementById('download-btn');
+  const pasteBtn = document.getElementById('paste-btn');
+  const loading = document.getElementById('loading');
+  const errorBox = document.getElementById('error');
+  const result = document.getElementById('result');
+  const cover = document.getElementById('cover');
+  const titleEl = document.getElementById('video-title');
+  const authorEl = document.getElementById('video-author');
+  const downloadsEl = document.getElementById('downloads');
+
+  const iconSvg = `<svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+
+  function resetStates(){
+    loading.classList.remove('visible');
+    errorBox.classList.remove('visible');
+    result.classList.remove('visible');
+    errorBox.textContent = '';
+    downloadsEl.innerHTML = '';
+  }
+
+  function showError(message){
+    resetStates();
+    errorBox.textContent = message;
+    errorBox.classList.add('visible');
+  }
+
+  function isLikelyTikTokUrl(url){
+    return /tiktok\.com/i.test(url);
+  }
+
+  function buildOption(href, name, desc, tagText, tagClass){
+    const a = document.createElement('a');
+    a.href = href;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.className = 'download-option';
+    a.innerHTML = `
+      <div class="option-label">
+        <span class="option-name">${name}</span>
+        <span class="option-desc">${desc}</span>
+      </div>
+      <span class="option-tag ${tagClass}">${tagText}</span>
+      ${iconSvg}
+    `;
+    return a;
+  }
+
+  async function fetchVideoData(url){
+    const apiUrl = 'https://www.tikwm.com/api/?url=' + encodeURIComponent(url) + '&hd=1';
+    const res = await fetch(apiUrl);
+    if(!res.ok){
+      throw new Error('network');
+    }
+    const json = await res.json();
+    if(json.code !== 0 || !json.data){
+      throw new Error('not_found');
+    }
+    return json.data;
+  }
+
+  pasteBtn.addEventListener('click', async function(){
+    try{
+      const text = await navigator.clipboard.readText();
+      if(text && text.trim()){
+        input.value = text.trim();
+        input.focus();
+        errorBox.classList.remove('visible');
+      }
+    }catch(err){
+      input.focus();
+      showError("Couldn't read the clipboard automatically — paste the link into the field with Ctrl/Cmd+V instead.");
+    }
+  });
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    const url = input.value.trim();
+
+    if(!url){
+      return;
+    }
+    if(!isLikelyTikTokUrl(url)){
+      showError("That doesn't look like a TikTok link. Copy the share link from the TikTok app or website and try again.");
+      return;
+    }
+
+    resetStates();
+    loading.classList.add('visible');
+    btn.disabled = true;
+
+    try{
+      const data = await fetchVideoData(url);
+
+      loading.classList.remove('visible');
+      btn.disabled = false;
+
+      cover.src = data.cover || data.origin_cover || '';
+      titleEl.textContent = data.title && data.title.trim() ? data.title : 'Untitled video';
+      authorEl.textContent = data.author && data.author.nickname ? '@' + (data.author.unique_id || data.author.nickname) : '';
+
+      downloadsEl.innerHTML = '';
+
+      if(data.play){
+        downloadsEl.appendChild(buildOption(
+          data.play, 'No watermark', 'Original quality, clean video',
+          'MP4', 'tag-nowm'
+        ));
+      }
+      if(data.hdplay){
+        downloadsEl.appendChild(buildOption(
+          data.hdplay, 'HD, no watermark', 'Higher bitrate version',
+          'HD', 'tag-hd'
+        ));
+      }
+      if(data.music){
+        downloadsEl.appendChild(buildOption(
+          data.music, 'Audio only', 'Just the sound, as MP3/M4A',
+          'AUDIO', 'tag-audio'
+        ));
+      }
+
+      if(!downloadsEl.children.length){
+        showError("Found the video, but couldn't get a download link for it. Try again in a moment.");
+        return;
+      }
+
+      result.classList.add('visible');
+    }catch(err){
+      btn.disabled = false;
+      loading.classList.remove('visible');
+      showError("Couldn't fetch that video. Double-check the link is public and try again.");
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
